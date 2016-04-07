@@ -1,0 +1,145 @@
+#define loMush 4
+#define loMush2 5
+#define loMush3 6
+#define hiMush 1
+#define hiMush2 2
+#define hiMush3 3
+#define PROXIMITY_THRESHOLD 85
+#define PROXIMITY_CONSECUTIVE_READINGS 3
+#define FLICKER_INTERVAL 25
+#define flower 12
+#define flower2 13
+#define flower3 7
+#define pot A2
+
+
+int soundSensorPin = A1;
+int soundReading = 0;
+int soundThreshold = 500;
+int intensity[4] = {0,0,0,0};
+int LEDPins[4] = {8,9,10,11};
+int numberOfPins = 4;
+int currentPin = 0;
+int fadeCounter = 0;
+int fadeDelay = 20;
+boolean switcher = true;
+
+
+long previousMillis = 0;
+long closeReadings = 0;
+
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(loMush, OUTPUT);
+  pinMode(loMush2, OUTPUT);
+  pinMode(loMush3, OUTPUT);
+  pinMode(hiMush, OUTPUT);
+  pinMode(hiMush2, OUTPUT);
+  pinMode(hiMush3, OUTPUT);
+  delay(1000);
+
+  pinMode(soundSensorPin, INPUT);
+  for (int i = 0; i < numberOfPins; i++){
+    pinMode(LEDPins[i], OUTPUT);
+  }
+
+  pinMode(flower, OUTPUT);
+  pinMode(flower2, OUTPUT);
+  pinMode(flower3, OUTPUT);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  if (analogRead(0) >= PROXIMITY_THRESHOLD) 
+  {
+    closeReadings++;
+    if (closeReadings >= PROXIMITY_CONSECUTIVE_READINGS)
+    {
+      digitalWrite(hiMush, HIGH);
+      digitalWrite(hiMush2, HIGH);
+      digitalWrite(hiMush3, HIGH);
+      digitalWrite(loMush, HIGH);
+      digitalWrite(loMush2, HIGH);
+      digitalWrite(loMush3, HIGH);
+    }
+  }
+  else
+  {
+    digitalWrite(hiMush, LOW);
+    digitalWrite(hiMush2, LOW);
+    digitalWrite(hiMush3, LOW);
+    digitalWrite(loMush, LOW);
+    digitalWrite(loMush2, LOW);
+    digitalWrite(loMush3, LOW);
+    closeReadings = 0;
+    unsigned long currentMillis = millis();
+    if(currentMillis - previousMillis > FLICKER_INTERVAL)
+    {
+      previousMillis = currentMillis;
+      analogWrite(hiMush, random(0,256));
+      analogWrite(hiMush2, random(0,256));
+      analogWrite(hiMush3, random(0,256));
+      analogWrite(loMush, random(0,256));
+      analogWrite(loMush2, random(0,256));
+      analogWrite(loMush3, random(0,256));
+    }
+  }
+
+
+  soundReading = analogRead(soundSensorPin);
+  if(soundReading >  soundThreshold){
+    if(switcher){
+      aboveThreshold(currentPin);
+      switcher = true;
+    }
+  }else {
+    if(switcher){
+      belowThreshold();
+      switcher = true;
+    }
+  }
+ }
+
+void aboveThreshold(int cPin){
+  switcher = false;
+  if(intensity[cPin]<10){
+    intensity[cPin]=255;
+    delay(20);
+    currentPin = currentPin+1;
+  }
+
+  if(currentPin == numberOfPins){
+    currentPin = 0;
+  }
+ }
+
+void belowThreshold(){
+  switcher = false;
+  fadeCounter++;
+  if(fadeCounter == fadeDelay){
+    fadeCounter=0;
+    for(int i=0; i<numberOfPins; i++){
+      analogWrite(LEDPins[i], intensity[i]);
+    }
+    for(int i=0; i<numberOfPins; i++){
+      intensity[i]--;
+      if(intensity[i]<0){
+        intensity[i]=0;
+      }
+    }
+  }
+
+  int val = analogRead(pot);
+  val = map(val, 1, 1024, 1, 255);
+  analogWrite(flower, val);
+  analogWrite(flower2, val);
+  analogWrite(flower3, val);
+}
+
+
+
+
+//reference:https://www.youtube.com/watch?v=85_AqlRWwiU
+//reference2:http://www.princetronics.com/sound-sensitive-lights-w-sound-sensor-arduino/
+//reference3:https://github.com/mrichardson23/PimpYourPumpkin
+//reference4:https://www.youtube.com/watch?v=RBYVUTIU4FE
